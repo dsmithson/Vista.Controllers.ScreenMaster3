@@ -16,11 +16,9 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.1
-    - name: Open source directory (src)
-      run: cd src
     - name: Install dependencies
-      run: dotnet restore
+      run: dotnet restore src
     - name: Build
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build src --configuration Release --no-restore
     - name: Test
-      run: dotnet test --no-restore --verbosity normal
+      run: dotnet test src --no-restore --verbosity normal

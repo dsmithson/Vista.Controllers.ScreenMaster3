@@ -19,6 +19,6 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --configuration Release --no-restore $GITHUB_WORKSPACE/src
+      run: dotnet build $GITHUB_WORKSPACE/src/Spyder.Console.ScreenMaster3.sln --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal

@@ -16,9 +16,11 @@ jobs:
       uses: actions/setup-dotnet@v1
       with:
         dotnet-version: 3.1
+    - name: Open source directory (src)
+      run: cd src
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build $GITHUB_WORKSPACE/src/Spyder.Console.ScreenMaster3.sln --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore
     - name: Test
       run: dotnet test --no-restore --verbosity normal

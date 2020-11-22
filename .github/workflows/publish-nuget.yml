@@ -20,7 +20,7 @@ jobs:
     - name: Build
       run: dotnet build --configuration Release --no-restore
     - name: Publish Vista.Controllers.ScreenMaster3
-      uses: brandedoutcast/publicsh-nuget@v2.5.5
+      uses: brandedoutcast/publish-nuget@v2.5.5
       with:
         PROJECT_FILE_PATH: src/Vista.Controllers.ScreenMaster3/Vista.Controllers.ScreenMaster3.csproj
         NUGET_KEY: ${{secrets.NUGET_API_KEY}}

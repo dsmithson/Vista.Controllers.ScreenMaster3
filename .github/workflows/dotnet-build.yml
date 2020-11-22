@@ -19,6 +19,6 @@ jobs:
     - name: Install dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --configuration Release --no-restore src
+      run: dotnet build --configuration Release --no-restore $GITHUB_WORKSPACE/src
     - name: Test
       run: dotnet test --no-restore --verbosity normal

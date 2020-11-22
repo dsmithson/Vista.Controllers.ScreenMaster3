@@ -16,9 +16,11 @@ jobs:
       with:
         dotnet-version: 3.1
     - name: Install dependencies
-      run: dotnet restore src
+      run: dotnet restore
+      working-directory: ./src/
     - name: Build
-      run: dotnet build src --configuration Release --no-restore
+      run: dotnet build --configuration Release --no-restore
+      working-directory: ./src/
     - name: Publish Vista.Controllers.ScreenMaster3
       uses: brandedoutcast/publish-nuget@v2.5.5
       with:

@@ -1,0 +1,20 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Vista.Controllers.ScreenMaster3</RootNamespace>
+    <AssemblyName>Vista.Controllers.ScreenMaster3</AssemblyName>
+    <Authors>Derek Smithson</Authors>
+    <Description>Hardware Library for the ScreenMaster3 3216 and SM3-3216 hardware controllers made by Vista Control Systems.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Copyright />
+    <PackageProjectUrl>https://github.com/dsmithson/Vista.Controllers.ScreenMaster3</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/dsmithson/Vista.Controllers.ScreenMaster3</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="KnightwareCore" Version="3.1.0" />
+  </ItemGroup>
+
+</Project>

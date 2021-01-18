@@ -34,6 +34,13 @@ namespace Spyder.Controllers.ScreenMaster3
 		private readonly string[] lcdButtonText;
 
 		/// <summary>
+		/// TBar can get stuck between two values and spam us.  We'll detect and ignore this.
+		/// </summary>
+		private int tBarLastValue = -1;
+		private int tBarPriorValue = -1;
+		private DateTime tBarLastUpdate = DateTime.MinValue;
+
+		/// <summary>
 		/// Processes the incoming UDP packets from the console keyboard
 		/// </summary>
 		private AsyncListProcessor<byte[]> keyboardIncommingCommandProcessor;
@@ -68,14 +75,14 @@ namespace Spyder.Controllers.ScreenMaster3
 				IsRunning = true;
 
 				keyboardIncommingCommandProcessor = new AsyncListProcessor<byte[]>(ProcessIncomingUdpMessage, () => IsRunning);
-				if (!await keyboardIncommingCommandProcessor.StartupAsync())
+				if (!await keyboardIncommingCommandProcessor.StartupAsync().ConfigureAwait(false))
 				{
 					await ShutdownAsync();
 					return false;
 				}
 
 				keyboardOutgoingCommandProcessor = new AsyncListProcessor<(byte[], TaskCompletionSource<bool>)>(ProcessOutgoingUdpCommand, () => IsRunning);
-				if (!await keyboardOutgoingCommandProcessor.StartupAsync())
+				if (!await keyboardOutgoingCommandProcessor.StartupAsync().ConfigureAwait(false))
 				{
 					await ShutdownAsync();
 					return false;
@@ -83,18 +90,20 @@ namespace Spyder.Controllers.ScreenMaster3
 
 				keyboardEndPoint = new IPEndPoint(IPAddress.Parse(keyboardAddress), keyboardPort);
 				client = new UdpClient(keyboardPort);
+				client.Connect(keyboardEndPoint);
 				client.BeginReceive(OnUdpDataReceived, client);
 
 				ClearAllPushButtonsAndLedButtons();
 				ClearAllLcdDisplayText();
 				Task t1 = UpdateLampsAsync();
 				Task t2 = UpdateAllDisplaysAsync();
-				await Task.WhenAll(t1, t2);
+				await Task.WhenAll(t1, t2).ConfigureAwait(false);
 
 				return true;
 			}
-			catch
+			catch(Exception ex)
 			{
+				Console.WriteLine($"{ex.GetType().Name} occurred while starting: {ex.Message}");
 				await ShutdownAsync();
 				return false;
 			}
@@ -106,13 +115,13 @@ namespace Spyder.Controllers.ScreenMaster3
 
 			if (keyboardIncommingCommandProcessor != null)
 			{
-				await keyboardIncommingCommandProcessor.ShutdownAsync();
+				await keyboardIncommingCommandProcessor.ShutdownAsync().ConfigureAwait(false);
 				keyboardIncommingCommandProcessor = null;
 			}
 
 			if (keyboardOutgoingCommandProcessor != null)
 			{
-				await keyboardOutgoingCommandProcessor.ShutdownAsync();
+				await keyboardOutgoingCommandProcessor.ShutdownAsync().ConfigureAwait(false);
 				keyboardOutgoingCommandProcessor = null;
 			}
 
@@ -213,7 +222,7 @@ namespace Spyder.Controllers.ScreenMaster3
 
 			header.CopyTo(data);
 			Array.Copy(lamps, 0, data, KeyboardMessageHeader.HEADER_SIZE, lamps.Length);
-			Array.Copy(lcdButtonColors, 0, data, KeyboardMessageHeader.HEADER_SIZE + lcdButtonColors.Length, LcdButtonCount);
+			Array.Copy(lcdButtonColors, 0, data, KeyboardMessageHeader.HEADER_SIZE + lamps.Length, LcdButtonCount);
 
 			return SendData(data);
 		}
@@ -235,8 +244,8 @@ namespace Spyder.Controllers.ScreenMaster3
 		{
 			KeyboardMessageHeader header = new KeyboardMessageHeader(KeyboardCommand.SetText1);
 
-			//This is just a guess - I'm sure the button ID needs to be set, but I haven't tested this next line
-			header.Arg1 = (uint)buttonIndex;
+			header.Arg1 = (uint)buttonIndex / 8;
+			header.Arg2 = (uint)buttonIndex % 8;
 
 			byte[] data = new byte[KeyboardMessageHeader.HEADER_SIZE + LcdButtonTextMaxLength];
 			header.CopyTo(data);
@@ -245,13 +254,18 @@ namespace Spyder.Controllers.ScreenMaster3
 			return SendData(data);
 		}
 
-		public Task<bool> UpdateEightDisplaysAsync(int startIndex)
+		/// <summary>
+		/// Updates an 8 button line / row, based on a specified row indes
+		/// </summary>
+		public Task<bool> UpdateDisplayRowAsync(int rowIndex)
 		{
 			KeyboardMessageHeader header = new KeyboardMessageHeader(KeyboardCommand.SetText8);
-			byte[] data = new byte[KeyboardMessageHeader.HEADER_SIZE + (LcdButtonTextMaxLength * 8)];
+			header.Arg1 = (uint)rowIndex;
 
+			byte[] data = new byte[KeyboardMessageHeader.HEADER_SIZE + (LcdButtonTextMaxLength * 8)];
 			header.CopyTo(data);
-			WriteTextDataBuffer(startIndex, 8, data);
+			int firstbuttonIndex = rowIndex * 8;
+			WriteTextDataBuffer(firstbuttonIndex, 8, data);
 
 			return SendData(data);
 		}
@@ -263,8 +277,9 @@ namespace Spyder.Controllers.ScreenMaster3
 				string text = lcdButtonText[startIndex + i];
 				if (!string.IsNullOrWhiteSpace(text))
 				{
-					int dstStart = ((startIndex + i) * LcdButtonTextMaxLength) + bufferStartPos;
-					Array.Copy(text.ToCharArray(), 0, buffer, dstStart, Math.Min(text.Length, LcdButtonTextMaxLength));
+					//NOTE:  Quick key text MUST be in all caps or it won't print the characters
+					int dstStart = (i * LcdButtonTextMaxLength) + bufferStartPos;
+					Array.Copy(Encoding.UTF8.GetBytes(text.ToUpper()), 0, buffer, dstStart, Math.Min(text.Length, LcdButtonTextMaxLength));
 				}
 			}
 		}
@@ -287,8 +302,9 @@ namespace Spyder.Controllers.ScreenMaster3
 
 			try
 			{
-				int count = await client.SendAsync(data, data.Length, keyboardEndPoint);
-				tcs.TrySetResult(count > 0);
+				int count = await client.SendAsync(data, data.Length).ConfigureAwait(false);
+				//tcs.TrySetResult(count > 0);
+				tcs.SetResult(count > 0);
 			}
 			catch (Exception ex)
 			{
@@ -369,7 +385,16 @@ namespace Spyder.Controllers.ScreenMaster3
 				}
 				else if (header.Cmd == (uint)KeyboardEventType.TBar)
 				{
-					TBarValueChanged?.Invoke(this, new KeyboardTBarEventArgs((short)header.Arg1));
+					int tBarValue = (short)header.Arg1;
+
+					//Check our last values to detect tbar spam (stuck between two values)
+					if ((tBarValue != tBarPriorValue && tBarValue != tBarLastValue) || tBarLastUpdate.AddSeconds(1) < DateTime.Now)
+					{
+						tBarPriorValue = tBarLastValue;
+						tBarLastValue = tBarValue;
+						TBarValueChanged?.Invoke(this, new KeyboardTBarEventArgs(tBarValue));
+					}
+					tBarLastUpdate = DateTime.Now;
 				}
 				else if (header.Cmd == (uint)KeyboardEventType.RotaryEncoder)
 				{

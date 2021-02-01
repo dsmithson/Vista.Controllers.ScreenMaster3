@@ -5,7 +5,7 @@ VisualStudioVersion = 16.0.30709.132
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vista.Controllers.ScreenMaster3", "Vista.Controllers.ScreenMaster3\Vista.Controllers.ScreenMaster3.csproj", "{2ADE656B-61C7-4B33-924E-F9B01708D6C9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Vista.Controllers.ScreenMaster3.TestConsole", "Vista.Controllers.ScreenMaster3.TestConsole\Vista.Controllers.ScreenMaster3.TestConsole.csproj", "{4D9A691C-A075-4579-B046-B8372D39A80B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Vista.Controllers.ScreenMaster3.TestConsole", "Vista.Controllers.ScreenMaster3.TestConsole\Vista.Controllers.ScreenMaster3.TestConsole.csproj", "{4D9A691C-A075-4579-B046-B8372D39A80B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

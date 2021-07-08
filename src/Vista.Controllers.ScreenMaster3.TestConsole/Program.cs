@@ -58,6 +58,10 @@ namespace Spyder.Controllers.ScreenMaster3.TestConsole
             lastButtonPressed = e.KeyIndex;
             lastButtonIsPressed = e.IsPressed;
             Console.WriteLine($"Keyboard action - key {e.KeyIndex} pressed = {e.IsPressed}");
+
+            keyboard.SetPushButtonLamp(e.KeyIndex, e.IsPressed);
+            await keyboard.UpdateLampsAsync();
+
             await UpdateStatisticsButtons();
         }
 

@@ -17,6 +17,7 @@ namespace Spyder.Controllers.ScreenMaster3
 
 		// General purpose statics
 		public const int Version = 1;
+		public const string HostAddress = "192.168.1.2";
 		public const string KeyboardAddress = "192.168.1.3";
 		public const int KeyboardPort = 9995;
 
@@ -66,7 +67,7 @@ namespace Spyder.Controllers.ScreenMaster3
 			lcdButtonText = new string[LcdButtonCount];
 		}
 
-		public async Task<bool> StartupAsync(string keyboardAddress = KeyboardAddress, int keyboardPort = KeyboardPort)
+		public async Task<bool> StartupAsync(string keyboardAddress = KeyboardAddress, int keyboardPort = KeyboardPort, string hostAddress = HostAddress)
 		{
 			await ShutdownAsync();
 
@@ -89,7 +90,7 @@ namespace Spyder.Controllers.ScreenMaster3
 				}
 
 				keyboardEndPoint = new IPEndPoint(IPAddress.Parse(keyboardAddress), keyboardPort);
-				client = new UdpClient(keyboardPort);
+				client = new UdpClient(new IPEndPoint(IPAddress.Parse(hostAddress), keyboardPort));
 				client.Connect(keyboardEndPoint);
 				client.BeginReceive(OnUdpDataReceived, client);
 
@@ -181,11 +182,15 @@ namespace Spyder.Controllers.ScreenMaster3
 
 		public void SetLcdButton(int id, LcdColor color, object line1, object line2, object line3)
         {
+			string l1 = (line1 == null ? "" : line1.ToString());
+			string l2 = (line2 == null ? "" : line2.ToString());
+			string l3 = (line3 == null ? "" : line3.ToString());
+
 			//Build text string (3 lines)
 			StringBuilder builder = new StringBuilder(LcdButtonTextMaxLength);
-			builder.Append((line1 ?? "").ToString().Substring(0, LcdButtonTextCharsPerLine).PadRight(LcdButtonTextCharsPerLine));
-			builder.Append((line2 ?? "").ToString().Substring(0, LcdButtonTextCharsPerLine).PadRight(LcdButtonTextCharsPerLine));
-			builder.Append((line3 ?? "").ToString().Substring(0, LcdButtonTextCharsPerLine).PadRight(LcdButtonTextCharsPerLine));
+			builder.Append(l1.ToString().Substring(0, Math.Min(l1.Length, LcdButtonTextCharsPerLine)).PadRight(LcdButtonTextCharsPerLine));
+			builder.Append(l2.ToString().Substring(0, Math.Min(l2.Length, LcdButtonTextCharsPerLine)).PadRight(LcdButtonTextCharsPerLine));
+			builder.Append(l3.ToString().Substring(0, Math.Min(l3.Length, LcdButtonTextCharsPerLine)).PadRight(LcdButtonTextCharsPerLine));
 
 			SetLcdButton(id, color, builder.ToString());
 		}
